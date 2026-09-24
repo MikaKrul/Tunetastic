@@ -23,6 +23,9 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
+    env:
+      # Push events have no workflow_dispatch input, so default to x64.
+      BUILD_PLATFORM: ${{ inputs.platform || 'x64' }}
 
     steps:
       - name: Checkout code
@@ -36,7 +39,8 @@ jobs:
       - name: Publish unpackaged app
         shell: pwsh
         run: |
-          $platform = "${{ inputs.platform }}"
+          $platform = $env:BUILD_PLATFORM
+          if ([string]::IsNullOrWhiteSpace($platform)) { $platform = "x64" }
           $rid = if ($platform -eq "ARM64") { "win-arm64" } else { "win-x64" }
           $out = "${{ github.workspace }}\publish"
 
@@ -76,7 +80,9 @@ jobs:
         id: zip
         shell: pwsh
         run: |
-          $platform = "${{ inputs.platform }}".ToLower()
+          $platform = $env:BUILD_PLATFORM
+          if ([string]::IsNullOrWhiteSpace($platform)) { $platform = "x64" }
+          $platform = $platform.ToLower()
           $zip = "${{ github.workspace }}\Tunetastic-win-$platform.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path "${{ github.workspace }}\publish\*" -DestinationPath $zip
