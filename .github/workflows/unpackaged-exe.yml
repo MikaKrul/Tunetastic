@@ -3,6 +3,10 @@ name: Build EXE
 # Manual unpackaged build. The project defaults to an MSIX package; this job
 # publishes a self-contained folder whose Tunetastic.exe runs without the Store.
 on:
+  # Push on this branch starts the job before the file is on the default branch.
+  # workflow_dispatch is what you use once this file is merged.
+  push:
+    branches: [build-exe-workflow]
   workflow_dispatch:
     inputs:
       platform:
