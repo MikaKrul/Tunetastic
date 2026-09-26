@@ -280,8 +280,7 @@
   <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   <StartupObject>Tunetastic.Startup</StartupObject>
   <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
-  <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
-  <PackageCertificateThumbprint>90305AD4941265C4E75A82E2B291085C30891B48</PackageCertificateThumbprint>
+  <AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>
   <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
   <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
   <AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
@@ -289,8 +288,8 @@
   <AppxBundle>Never</AppxBundle>
   <AppxBundlePlatforms>x64</AppxBundlePlatforms>
   <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
-  <AppxPackageDir>C:\Users\amitp\source\repos\Tunetastic\AppPackages\</AppxPackageDir>
-  <CreateMSIXPackage>True</CreateMSIXPackage>
+  <AppxPackageDir>$(OutDir)AppPackages\</AppxPackageDir>
+  <CreateMSIXPackage>False</CreateMSIXPackage>
 </PropertyGroup>
   <Target Name="TransformAllT4Templates" BeforeTargets="BeforeBuild">
     <ItemGroup>
