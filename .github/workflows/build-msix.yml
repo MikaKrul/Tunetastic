@@ -1,0 +1,103 @@
+name: Build MSIX (x64)
+
+# Knop-workflow: ga in GitHub naar Actions > "Build MSIX (x64)" > "Run workflow".
+# Bouwt een signed MSIX (x64, sideload) met dezelfde Identity-Naam en Publisher
+# als het origineel, zodat het pakket als update over de bestaande Tunetastic-
+# installatie heen installeert (appdata blijft behouden).
+# Signing loopt via de secrets TUNETASTIC_SIGN_PFX (base64) en
+# TUNETASTIC_SIGN_PASSWORD. De bijbehorende .cer staat in
+# Assets/Store/Tunetastic_Store_Publisher_Certificate.cer en moet eenmalig als
+# vertrouwd worden geinstalleerd.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: build-msix-x64
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore NuGet packages
+        run: dotnet restore Tunetastic.sln --configfile nuget.config
+
+      - name: Write signing certificate
+        shell: pwsh
+        env:
+          PFX_B64: ${{ secrets.TUNETASTIC_SIGN_PFX }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PFX_B64)) {
+            Write-Error "TUNETASTIC_SIGN_PFX secret ontbreekt."
+            exit 1
+          }
+          [IO.File]::WriteAllBytes("${{ github.workspace }}\sign.pfx", [Convert]::FromBase64String($env:PFX_B64.Trim()))
+
+      - name: Build and sign MSIX (x64)
+        shell: pwsh
+        env:
+          PFX_PASSWORD: ${{ secrets.TUNETASTIC_SIGN_PASSWORD }}
+        run: >
+          msbuild Tunetastic.csproj
+          /p:Configuration=Release
+          /p:Platform=x64
+          /p:UapAppxPackageBuildMode=SideloadOnly
+          /p:AppxBundle=Never
+          /p:GenerateAppxPackageOnBuild=true
+          /p:AppxPackageDir="${{ github.workspace }}\AppxPackages\"
+          /p:AppxPackageSigningEnabled=true
+          /p:PackageCertificateKeyFile="${{ github.workspace }}\sign.pfx"
+          /p:PackageCertificatePassword=$env:PFX_PASSWORD
+
+      - name: Remove signing certificate
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath "${{ github.workspace }}\sign.pfx" -Force -ErrorAction SilentlyContinue
+
+      - name: Find MSIX
+        id: find_msix
+        shell: pwsh
+        run: |
+          $msix = Get-ChildItem -Recurse -Path "${{ github.workspace }}\AppxPackages" -Filter "*.msix" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $msix) { Write-Error "No .msix file found!"; exit 1 }
+          Write-Host "Found MSIX at: $($msix.FullName)"
+          "path=$($msix.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload MSIX and certificate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tunetastic-msix-x64
+          path: |
+            ${{ steps.find_msix.outputs.path }}
+            Assets/Store/Tunetastic_Store_Publisher_Certificate.cer
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Run summary
+        shell: pwsh
+        run: |
+          @"
+          ## Tunetastic x64 MSIX (signed, sideload)
+
+          Download het **Tunetastic-msix-x64** artifact van deze run.
+          Installeer eenmalig ``Tunetastic_Store_Publisher_Certificate.cer`` als
+          vertrouwd certificaat, daarna installeert de ``.msix`` als update over
+          de bestaande Tunetastic-installatie heen.
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
