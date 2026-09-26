@@ -74,18 +74,11 @@ jobs:
           }
           Get-Item $exe | Format-List FullName, Length, LastWriteTime
 
-      - name: Zip publish folder
-        shell: pwsh
-        run: |
-          $zip = "${{ github.workspace }}\Tunetastic-win-x64.zip"
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path "${{ github.workspace }}\publish\*" -DestinationPath $zip
-
-      - name: Upload artifact
+      - name: Upload artifact (exe only)
         uses: actions/upload-artifact@v4
         with:
           name: Tunetastic-win-x64
-          path: ${{ github.workspace }}\Tunetastic-win-x64.zip
+          path: ${{ github.workspace }}\publish\Tunetastic.exe
           if-no-files-found: error
           compression-level: 0
 
@@ -96,6 +89,5 @@ jobs:
           ## Tunetastic x64 (unpackaged)
 
           Download het **Tunetastic-win-x64** artifact van deze run.
-          De zip bevat ``Tunetastic.exe`` plus de benodigde .NET- en
-          Windows App SDK-bestanden. Uitpakken en ``Tunetastic.exe`` starten.
+          Dit bevat alleen ``Tunetastic.exe``.
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
