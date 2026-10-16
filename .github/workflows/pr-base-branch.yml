@@ -28,6 +28,18 @@ jobs:
               return;
             }
 
+            // Check if desiredBase branch actually exists in repo
+            try {
+              await github.rest.repos.getBranch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                branch: desiredBase,
+              });
+            } catch (err) {
+              core.info(`Desired base branch "${desiredBase}" does not exist in repo. Leaving base branch as "${currentBase}".`);
+              return;
+            }
+
             await github.rest.pulls.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
